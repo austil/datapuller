@@ -38,8 +38,8 @@ const pullAll = async (endpoint, params, name = 'tweets') => {
     const {tweets: data} = await twitterGet(endpoint, params);
     if(data.length > 0) { 
       log(`${dataSorted.length + data.length} ${name} pulled`);
-      dataSorted = _(data).sortBy('id').concat(dataSorted).value();
-      params.max_id = _.first(dataSorted).id;
+      dataSorted = _(data).sortBy('id_str').concat(dataSorted).value();
+      params.max_id = _.first(dataSorted).id_str;
     }
     moreToPull = data.length >= params.count - 50;
   }
@@ -86,11 +86,11 @@ const pullFavorite = async (sinceId) => {
 };
 
 (async () => {
-  const lastFavorite = _.last(db.get('favorite').value());
-  const lastTweets = _.last(db.get('tweets').value());
+  const lastFavorite = db.get('favorite').last().value();
+  const lastTweets = db.get('tweets').last().value();
 
   await Promise.all([
-    pullFavorite(lastFavorite ? lastFavorite.id : null),
-    pullTweets(lastTweets ? lastTweets.id : null)
+    pullFavorite(lastFavorite ? lastFavorite.id_str : null),
+    pullTweets(lastTweets ? lastTweets.id_str : null)
   ]);
 })();
