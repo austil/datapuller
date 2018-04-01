@@ -12,7 +12,8 @@
     "chalk": "^2.3.2",
     "lodash": "^4.17.5",
     "lowdb": "^1.0.0",
-    "node-getpocket": "^1.0.0"
+    "node-getpocket": "^1.0.0",
+    "twitter": "^1.7.1"
   },
   "devDependencies": {
     "eslint": "^4.19.0"

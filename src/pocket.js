@@ -90,7 +90,7 @@ const pocketGet = (params) => (new Promise((resolve, reject) => {
   });
 }));
 
-const pullAll = async (params, name = 'items') => {
+const pullAll = async (params, name = 'articles') => {
   let moreToPull = true;
   let dataSorted = [];
 
