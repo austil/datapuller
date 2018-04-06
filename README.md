@@ -7,7 +7,7 @@ Currently supporting :
 - [X] Pocket : unread, archived & favorites
 - [X] Twitter : likes, tweets, retweets
 - [ ] Browser bookmarks
-- [ ] Youtube : likes, favorites, history
+- [ ] Youtube : likes, favorites, history, posted comments
 - [ ] Github : stars
 - [ ] Reddit : upvoted, saved
 - [ ] Facebook : likes

@@ -1,6 +1,3 @@
-// Node dependencies
-const readline = require('readline');
-
 // Npm dependencies
 const _ = require('lodash');
 const pocketWrapper = require('node-getpocket');
@@ -9,6 +6,8 @@ const FileSync = require('lowdb/adapters/FileSync');
 const chalk = require('chalk');
 
 // Local dependencies
+const auth = require('./auth_manager');
+const pocketAuth = require('./pocket_auth');
 const config = require('../config.js').pocket;
 
 const log = msg => console.log(chalk.magenta.bold(' Pocket > ') + msg);
@@ -18,8 +17,7 @@ const pocket = new pocketWrapper(config);
 const adapter = new FileSync('./db/pocket_db.json');
 const db = low(adapter);
 
-db.defaults({ 
-  access_token: '',
+db.defaults({
   archived: {
     favorite: [],
     others: []
@@ -27,55 +25,6 @@ db.defaults({
   unread: [],
   last_pull: ''
 }).write();
-
-// Api Token
-const getRequestToken = () => (new Promise((resolve, reject) => {
-  pocket.getRequestToken(config, (err, resp, body) => {
-    if (err) { 
-      reject('Get request token failed ' + JSON.stringify(err)); 
-    }
-    else {
-      const json = JSON.parse(body);
-      resolve(json.code);
-    }
-  });
-}));
-
-const authorizeApp = () => (new Promise((resolve) => {
-  log(`Authorize this app at : ${pocket.getAuthorizeURL(config)}`);
-  const rl = readline.createInterface({input: process.stdin, output: process.stdout});
-  rl.question('Press enter to continue when you\'re done ', () => {
-    rl.close();
-    resolve();
-  });
-}));
-
-const getAccesstoken = () => (new Promise((resolve, reject) => {
-  pocket.getAccessToken(config, (err, resp, body) => {
-    if (err) {
-      reject('Get access token failed ' + JSON.stringify(err));
-    }
-    else {
-      const json = JSON.parse(body);
-      resolve(json.access_token);
-    }
-  });
-}));
-
-const getAccess = () => {
-  return getRequestToken()
-    .then(requestToken => {
-      config.request_token = requestToken;
-      log(`Request token : ${requestToken}`);
-    })
-    .then(authorizeApp)
-    .then(getAccesstoken)
-    .then(accessToken => {
-      db.set('access_token', accessToken).write();
-      log(`Access token : ${accessToken}`);
-    })
-    .catch(err => log(err));
-};
 
 // Data puller
 const pocketGet = (params) => (new Promise((resolve, reject) => {
@@ -183,11 +132,11 @@ const removeArchivedUnread = () => {
 // Main immediate function
 (async () => {
   // Api tokens
-  if(db.get('access_token').value().length === 0) {
+  if(auth.has('pocket') === false) {
     log('No access token found, lets get one');
-    await getAccess();
+    await pocketAuth.getAccess({pocket, config, log});
   }
-  config.access_token = db.get('access_token').value();
+  config.access_token = auth.get('pocket').access_token;
   pocket.refreshConfig(config);
   log('Ready !');
 
