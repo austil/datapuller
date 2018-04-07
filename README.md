@@ -6,8 +6,8 @@ Currently supporting :
 
 - [X] Pocket : unread, archived & favorites
 - [X] Twitter : likes, tweets, retweets
-- [ ] Browser bookmarks
-- [ ] Youtube : likes, favorites, history, posted comments
+- [X] Browser bookmarks (avaible for analysis via manual import)
+- [X] Youtube : likes, favorites, ~~history~~ (deprecated via api, will required scrapping or manual import)
 - [ ] Github : stars
 - [ ] Reddit : upvoted, saved
 - [ ] Facebook : likes
