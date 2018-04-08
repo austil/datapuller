@@ -2,3 +2,4 @@ db/
 sample_request.sh
 config.js
 node_modules
+drop_zone

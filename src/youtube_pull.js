@@ -1,3 +1,6 @@
+const fs = require('fs');
+const crypto = require('crypto');
+
 // Npm dependencies
 const _ = require('lodash');
 const chalk = require('chalk');
@@ -6,6 +9,7 @@ const OAuth2 = google.auth.OAuth2;
 const service = google.youtube('v3');
 const low = require('lowdb');
 const FileSync = require('lowdb/adapters/FileSync');
+const cheerio = require('cheerio');
 
 // Local dependencies
 const auth = require('./auth_manager');
@@ -20,13 +24,16 @@ const redirectUrl = config.installed.redirect_uris[0];
 const oauth2Client = new OAuth2(clientId, clientSecret, redirectUrl);
 
 // Database
-const adapter = new FileSync('./db/youtue_db.json');
+const adapter = new FileSync('./db/youtube_db.json');
 const db = low(adapter);
 
 db.defaults({
   likes: [],
   history: [],
-  favorites: []
+  favorites: [],
+  last_parse: {
+    watch_history: ''
+  }
 }).write();
 
 const getDefaultsPlaylists = (oauth2Client) => (new Promise((resolve, reject) => {
@@ -117,6 +124,67 @@ const pullFavorites = async (playlists, sinceId) => {
   }
 };
 
+const readFile = (file) => (new Promise((resolve, reject) => {
+  fs.readFile(file, 'utf8', (err, data) => {
+    if (err) {
+      reject(err);
+    }
+    resolve(data);
+  });
+}));
+
+// Thx to https://stackoverflow.com/questions/18658612/obtaining-the-hash-of-a-file-using-the-stream-capabilities-of-crypto-module-ie
+const checksumFile = function (algorithm, path) {
+  return new Promise((resolve, reject) =>
+    fs.createReadStream(path)
+      .on('error', reject)
+      .pipe(crypto.createHash(algorithm)
+        .setEncoding('hex'))
+      .once('finish', function () {
+        resolve(this.read());
+      })
+  );
+};
+
+const parseHistory = async (lastParse) => {
+  const historyFile = './drop_zone/watch-history.html';
+  const hash = await checksumFile('md5', historyFile);
+  if(lastParse && hash === lastParse) {
+    log(chalk.bold('Same history file') + `, no need to parse ${historyFile}`);
+    return;
+  }
+
+  const parse = data => {
+    log(chalk.bold('Parsing history file') + ' ' + historyFile);
+    const $ = cheerio.load(data);
+    log('File watch-history.html loaded in the parser');
+    const videos = $('.mdl-grid .content-cell:nth-child(2)')
+      .map((index, elem) => {
+        const title = $(elem).find('a').get(0);
+        const channel = $(elem).find('a').get(1);
+        const date = $(elem).children().last().get(0).next.data;
+        const video = {
+          title: $(title).text(),
+          videoLink: $(title).attr('href'),
+          channel: $(channel).text(),
+          channelLink: $(channel).attr('href'),
+          date: date
+        };
+        if(index % 1000 === 0) {
+          log(`Parsing watch-history.html : ${index} videos`);
+        }
+        return video;
+      }).get();
+    db.set('history', videos).write();
+    log(chalk.bold('History file parse finished') + `, ${videos.length} videos`);
+  };
+
+  await readFile(historyFile)
+    .then(parse)
+    .then(() => db.set('last_parse.watch_history', hash).write())
+    .catch(() => log(chalk.bold('No file') + ' ' + historyFile));
+};
+
 (async () => {
   // Api tokens
   if(auth.has('youtube') === false) {
@@ -130,9 +198,11 @@ const pullFavorites = async (playlists, sinceId) => {
 
   const lastLike = db.get('likes').last().value();
   const lastFavorite = db.get('favorites').last().value();
+  const lastHistoryParse = db.get('last_parse.watch_history').value();
 
   await Promise.all([
     pullLikes(playlists, lastLike ? lastLike.id : null),
-    pullFavorites(playlists, lastFavorite ? lastFavorite.id : null)
+    pullFavorites(playlists, lastFavorite ? lastFavorite.id : null),
   ]);
+  parseHistory(lastHistoryParse);
 })();
