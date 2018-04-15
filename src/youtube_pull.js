@@ -3,7 +3,6 @@ const crypto = require('crypto');
 
 // Npm dependencies
 const _ = require('lodash');
-const chalk = require('chalk');
 const {google} = require('googleapis');
 const OAuth2 = google.auth.OAuth2;
 const service = google.youtube('v3');
@@ -12,19 +11,27 @@ const FileSync = require('lowdb/adapters/FileSync');
 const cheerio = require('cheerio');
 
 // Local dependencies
+const {logger} = require('./helpers');
 const auth = require('./auth_manager');
 const youtubeAuth = require('./youtube_auth');
 const config = require('../config.js').youtube;
 
-const log = msg => console.log(chalk.red.bold(' Youtube > ') + msg);
+const {YOUTUBE: PULLER, STEP_STATUS} = require('./const');
+const log = logger(PULLER);
 
 const clientSecret = config.installed.client_secret;
 const clientId = config.installed.client_id;
 const redirectUrl = config.installed.redirect_uris[0];
 const oauth2Client = new OAuth2(clientId, clientSecret, redirectUrl);
 
+const STEPS = {
+  LIKES: 0,
+  FAVORITE: 1,
+  HISTORY: 2
+};
+
 // Database
-const adapter = new FileSync('./db/youtube_db.json');
+const adapter = new FileSync(PULLER.FILE);
 const db = low(adapter);
 
 db.defaults({
@@ -60,7 +67,7 @@ const getPlaylistItems = (params) => (new Promise((resolve, reject) => {
   });
 }));
 
-const pullAll = async (oauth2Client, params, name = 'videos') => {
+const pullAll = async (params, logger = log) => {
   let moreToPull = true;
   let dataSorted = [];
 
@@ -74,7 +81,7 @@ const pullAll = async (oauth2Client, params, name = 'videos') => {
       }
     }
     
-    if(data.items.length > 0) { log(`${dataSorted.length + data.items.length} ${name} pulled`); }
+    if(data.items.length > 0) { logger({msg: `${dataSorted.length + data.items.length}`}); }
     
     dataSorted = data.items.reverse().concat(dataSorted);
     moreToPull = data.items.length >= params.maxResults;
@@ -90,38 +97,25 @@ const commonParams = {
   maxResults: 50
 };
 
-const pullLikes = async (playlists, sinceId) => {
-  const params = _.assign({playlistId: playlists.likes}, commonParams);
-  if(sinceId) {
-    params.sinceId = sinceId;
-    log(chalk.bold('Updating') + ' likes');
-    const likes = await pullAll(oauth2Client, params, 'likes');
-    db.update('likes', list => list.concat(likes)).write();
-    log(chalk.bold('Likes update finished') + `, ${likes.length} items total`);
-  } 
-  else {
-    log(chalk.bold('Pulling all') + ' likes');
-    const likes = await pullAll(oauth2Client, params, 'likes');
-    db.set('likes', likes).write();
-    log(chalk.bold('First likes pull finished') + `, ${likes.length} items total`);
-  }
-};
+const puller = ({name, step, params, dbProps}) => {
+  return async (sinceId) => {
+    const llog = ({msg, status = STEP_STATUS.IN_PROGRESS}) => log({msg: name + ': ' + msg, status, step});
+    const pullerParams = _.assign(params, commonParams);
 
-const pullFavorites = async (playlists, sinceId) => {
-  const params = _.assign({playlistId: playlists.favorites}, commonParams);
-  if(sinceId) {
-    params.sinceId = sinceId;
-    log(chalk.bold('Updating') + ' favorites');
-    const favorites = await pullAll(oauth2Client, params, 'favorites');
-    db.update('favorites', list => list.concat(favorites)).write();
-    log(chalk.bold('Favorites update finished') + `, ${favorites.length} items total`);
-  } 
-  else {
-    log(chalk.bold('Pulling all') + ' favorites');
-    const favorites = await pullAll(oauth2Client, params, 'favorites');
-    db.set('favorites', favorites).write();
-    log(chalk.bold('First favorites pull finished') + `, ${favorites.length} items total`);
-  }
+    if(sinceId) {
+      pullerParams.sinceId = sinceId;
+      llog({msg: 'starting update'});
+      const data = await pullAll(pullerParams, llog);
+      db.update(dbProps, list => list.concat(data)).write();
+      llog({msg: `${data.length}`, status: STEP_STATUS.COMPLETE});
+    } 
+    else {
+      llog({msg: 'first pull'});
+      const data = await pullAll(pullerParams, llog);
+      db.set(dbProps, data).write();
+      llog({msg: `${data.length}`, status: STEP_STATUS.COMPLETE});
+    }
+  };
 };
 
 const readFile = (file) => (new Promise((resolve, reject) => {
@@ -148,16 +142,18 @@ const checksumFile = function (algorithm, path) {
 
 const parseHistory = async (lastParse) => {
   const historyFile = './drop_zone/watch-history.html';
+  const llog = ({msg, status = STEP_STATUS.IN_PROGRESS}) => log({msg: 'History: ' + msg, status, step: STEPS.HISTORY});
   const hash = await checksumFile('md5', historyFile);
+
   if(lastParse && hash === lastParse) {
-    log(chalk.bold('Same history file') + `, no need to parse ${historyFile}`);
+    llog({msg: 'unchanged file', status: STEP_STATUS.COMPLETE});
     return;
   }
 
   const parse = data => {
-    log(chalk.bold('Parsing history file') + ' ' + historyFile);
+    llog({msg: 'parsing file'});
     const $ = cheerio.load(data);
-    log('File watch-history.html loaded in the parser');
+    llog({msg: 'loaded in parser'});
     const videos = $('.mdl-grid .content-cell:nth-child(2)')
       .map((index, elem) => {
         const title = $(elem).find('a').get(0);
@@ -171,38 +167,52 @@ const parseHistory = async (lastParse) => {
           date: date
         };
         if(index % 1000 === 0) {
-          log(`Parsing watch-history.html : ${index} videos`);
+          llog({msg: `${index}`});
         }
         return video;
       }).get();
     db.set('history', videos).write();
-    log(chalk.bold('History file parse finished') + `, ${videos.length} videos`);
+    llog({msg: `${videos.length}`, status: STEP_STATUS.COMPLETE});
   };
 
   await readFile(historyFile)
     .then(parse)
     .then(() => db.set('last_parse.watch_history', hash).write())
-    .catch(() => log(chalk.bold('No file') + ' ' + historyFile));
+    .catch(() => llog({msg: 'no file' + ' ' + historyFile, status: STEP_STATUS.COMPLETE}));
 };
 
 (async () => {
   // Api tokens
   if(auth.has('youtube') === false) {
-    log('No access token found, lets get one');
+    log({msg: 'No access token found, lets get one'});
     await youtubeAuth.getAccess({oauth2Client, log});
   }
   oauth2Client.credentials = auth.get('youtube');
-  log('Ready !');
+  log({msg: 'Ready !'});
   
   const playlists = await getDefaultsPlaylists(oauth2Client, service);
+
+  const pullLikes = puller({
+    name: 'Likes',
+    step: STEPS.LIKES,
+    params: {playlistId: playlists.likes},
+    dbProps: 'likes'
+  });
+  
+  const pullFavorites = puller({
+    name: 'Favorites',
+    step: STEPS.FAVORITE,
+    params: {playlistId: playlists.favorites},
+    dbProps: 'favorites'
+  });
 
   const lastLike = db.get('likes').last().value();
   const lastFavorite = db.get('favorites').last().value();
   const lastHistoryParse = db.get('last_parse.watch_history').value();
 
   await Promise.all([
-    pullLikes(playlists, lastLike ? lastLike.id : null),
-    pullFavorites(playlists, lastFavorite ? lastFavorite.id : null),
+    pullLikes(lastLike ? lastLike.id : null),
+    pullFavorites(lastFavorite ? lastFavorite.id : null),
   ]);
   parseHistory(lastHistoryParse);
 })();

@@ -3,16 +3,22 @@ const _ = require('lodash');
 const twitterWrapper = require('twitter');
 const low = require('lowdb');
 const FileSync = require('lowdb/adapters/FileSync');
-const chalk = require('chalk');
 
 // Local dependencies
+const {logger} = require('./helpers');
 const config = require('../config.js').twitter;
- 
-const log = msg => console.log(chalk.blue.bold(' Twitter > ') + msg);
+
+const {TWITTER: PULLER, STEP_STATUS} = require('./const');
+const log = logger(PULLER);
 const twitter = new twitterWrapper(config);
 
+const STEPS = {
+  FAVORITE: 0,
+  TWEETS: 1
+};
+
 // Database
-const adapter = new FileSync('./db/twitter_db.json');
+const adapter = new FileSync(PULLER.FILE);
 const db = low(adapter);
 
 db.defaults({
@@ -30,14 +36,14 @@ const twitterGet = (endpoint, params) => (new Promise((resolve, reject) => {
   });
 }));
 
-const pullAll = async (endpoint, params, name = 'tweets') => {
+const pullAll = async (endpoint, params, logger = log) => {
   let moreToPull = true;
   let dataSorted = [];
 
   while(moreToPull){
     const {tweets: data} = await twitterGet(endpoint, params);
     if(data.length > 0) { 
-      log(`${dataSorted.length + data.length} ${name} pulled`);
+      logger({msg: `${dataSorted.length + data.length}`});
       dataSorted = _(data).sortBy('id_str').concat(dataSorted).value();
       params.max_id = _.first(dataSorted).id_str;
     }
@@ -51,39 +57,42 @@ const commonsParams = {
   count: 200
 };
 
-const pullTweets = async (sinceId) => {
-  const params = _.assign({include_rts: true}, commonsParams);
-  if(sinceId) {
-    params.since_id = sinceId;
-    log(chalk.bold('Updating') + ' tweets');
-    const tweets = await pullAll('statuses/user_timeline', params);
-    db.update('tweets', list => list.concat(tweets)).write();
-    log(chalk.bold('Tweets update finished') + `, ${tweets.length} items total`);    
-  }
-  else {
-    log(chalk.bold('Pulling all') + ' tweets');
-    const tweets = await pullAll('statuses/user_timeline', params);
-    db.set('tweets', tweets).write();
-    log(chalk.bold('First tweets pull finished') + `, ${tweets.length} items total`);
-  }
+const puller = ({name, step, endpoint, params, dbProps}) => {
+  return async (sinceId) => {
+    const llog = ({msg, status = STEP_STATUS.IN_PROGRESS}) => log({msg: name + ': ' + msg, status, step});
+    const pullerParams = _.assign(params, commonsParams);
+
+    if(sinceId) {
+      pullerParams.since_id = sinceId;
+      llog({msg: 'starting update'});
+      const tweets = await pullAll(endpoint, pullerParams, llog);
+      db.update(dbProps, list => list.concat(tweets)).write();
+      llog({msg: `${tweets.length}`, status: STEP_STATUS.COMPLETE});
+    }
+    else {
+      llog({msg: 'first pull'});
+      const tweets = await pullAll(endpoint, pullerParams, llog);
+      db.set(dbProps, tweets).write();
+      llog({msg: `${tweets.length}`, status: STEP_STATUS.COMPLETE});
+    }
+  };
 };
 
-const pullFavorite = async (sinceId) => {
-  const params = _.assign({}, commonsParams);
-  if(sinceId) {
-    params.since_id = sinceId;
-    log(chalk.bold('Updating') + ' favorite');
-    const favorite = await pullAll('favorites/list', params, 'favorite');
-    db.update('favorite', list => list.concat(favorite)).write();
-    log(chalk.bold('Favorite update finished') + `, ${favorite.length} items total`);    
-  }
-  else {
-    log(chalk.bold('Pulling all') + ' favorite');
-    const favorite = await pullAll('favorites/list', params, 'favorite');
-    db.set('favorite', favorite).write();
-    log(chalk.bold('First favorite pull finished') + `, ${favorite.length} items total`);
-  }
-};
+const pullTweets = puller({
+  name: 'Tweets',
+  step: STEPS.TWEETS,
+  endpoint: 'statuses/user_timeline',
+  params: {include_rts: true},
+  dbProps: 'tweets'
+});
+
+const pullFavorite = puller({
+  name: 'Favorite',
+  step: STEPS.FAVORITE,
+  endpoint: 'favorites/list',
+  params: {},
+  dbProps: 'favorite'
+});
 
 (async () => {
   const lastFavorite = db.get('favorite').last().value();
