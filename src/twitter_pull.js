@@ -6,11 +6,13 @@ const FileSync = require('lowdb/adapters/FileSync');
 
 // Local dependencies
 const {logger} = require('./helpers');
+const auth = require('./auth_manager');
+const twitterAuth = require('./twitter_auth');
 const config = require('../config.js').twitter;
 
 const {TWITTER: PULLER, STEP_STATUS} = require('./const');
 const log = logger(PULLER);
-const twitter = new twitterWrapper(config);
+let twitter = {};
 
 const STEPS = {
   FAVORITE: 0,
@@ -95,11 +97,20 @@ const pullFavorite = puller({
 });
 
 (async () => {
+  // Api tokens
+  if(auth.has(PULLER.NAME) === false) {
+    log({msg: 'No bearer token found, lets get one'});
+    await twitterAuth.getBearerToken(config);
+  }
+  config.bearer_token = auth.get(PULLER.NAME).bearer_token;
+  twitter = new twitterWrapper(config);
+  log({msg: 'Ready !'});
+
   const lastFavorite = db.get('favorite').last().value();
   const lastTweets = db.get('tweets').last().value();
 
   await Promise.all([
     pullFavorite(lastFavorite ? lastFavorite.id_str : null),
     pullTweets(lastTweets ? lastTweets.id_str : null)
-  ]);
+  ]).catch(exception => console.log(exception));
 })();

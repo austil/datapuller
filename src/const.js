@@ -1,5 +1,12 @@
 const chalk = require('chalk');
 
+const PULLER_STATUS = {
+  LOADING: 'LOADING',
+  NOT_CONFIGURED: 'NOT_CONFIGURED',
+  NOT_INITIALIZED: 'NOT_INITIALIZED',
+  READY: 'READY'
+};
+
 const STEP_STATUS = {
   IN_PROGRESS: 'IN_PROGRESS',
   COMPLETE: 'COMPLETE',
@@ -28,6 +35,7 @@ const YOUTUBE = {
 };
 
 module.exports = {
+  PULLER_STATUS,
   STEP_STATUS,
   POCKET,
   TWITTER,

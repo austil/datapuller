@@ -17,10 +17,13 @@ const renderLine = puller => {
   const pullerKey = puller.NAME;
   if(_.has(output, pullerKey) === false) { return ''; }
 
+  const isComplete = progress[pullerKey] >= puller.STEPS;
+
+  const pullerStatus = isComplete ? '✔' : '~';
   const pullerProgress = progress[pullerKey] + '/' + puller.STEPS + ' ';
   const pullerName =  puller.COLOR(_.capitalize(pullerKey + ' > '));
   const pullerValues = output[pullerKey].join(', ');
-  return pullerProgress + pullerName + pullerValues;
+  return pullerStatus + ' ' + pullerProgress + pullerName + pullerValues;
 };
 
 const renderFrame = (message) => {

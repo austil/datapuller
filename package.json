@@ -17,6 +17,8 @@
     "log-update": "^2.3.0",
     "lowdb": "^1.0.0",
     "node-getpocket": "^1.0.0",
+    "request": "^2.85.0",
+    "request-promise-native": "^1.0.5",
     "twitter": "^1.7.1"
   },
   "devDependencies": {
