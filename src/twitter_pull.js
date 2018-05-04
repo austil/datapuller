@@ -8,7 +8,7 @@ const FileSync = require('lowdb/adapters/FileSync');
 const {logger} = require('./helpers');
 const auth = require('./auth_manager');
 const twitterAuth = require('./twitter_auth');
-const config = require('../config.js').twitter;
+const config = require('./config_manager').twitter;
 
 const {TWITTER: PULLER, STEP_STATUS} = require('./const');
 const log = logger(PULLER);

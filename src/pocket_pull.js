@@ -8,7 +8,7 @@ const FileSync = require('lowdb/adapters/FileSync');
 const {logger} = require('./helpers');
 const auth = require('./auth_manager');
 const pocketAuth = require('./pocket_auth');
-const config = require('../config.js').pocket;
+const config = require('./config_manager').pocket;
 
 const {POCKET: PULLER, STEP_STATUS} = require('./const');
 const log = logger(PULLER);

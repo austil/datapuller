@@ -14,7 +14,7 @@ const cheerio = require('cheerio');
 const {logger} = require('./helpers');
 const auth = require('./auth_manager');
 const youtubeAuth = require('./youtube_auth');
-const config = require('../config.js').youtube;
+const config = require('./config_manager').youtube;
 
 const {YOUTUBE: PULLER, STEP_STATUS} = require('./const');
 const log = logger(PULLER);
