@@ -67,6 +67,15 @@ const getPlaylistItems = (params) => (new Promise((resolve, reject) => {
   });
 }));
 
+const getVideosList = (params) => (new Promise((resolve, reject) => {
+  service.videos.list(params, (err, res) => {
+    if (err) {
+      reject('The API returned an error: ' + err);
+    }
+    resolve(res.data.items);
+  });
+}));
+
 const pullAll = async (params, logger = log) => {
   let moreToPull = true;
   let dataSorted = [];
@@ -150,33 +159,50 @@ const parseHistory = async (lastParse) => {
     return;
   }
 
+  let $;
+
+  const parseVideoId = (index, elem) => {
+    const title = $(elem).find('a').get(0);
+    const videoId = $(title).attr('href').split('?v=')[1];
+    if(index % 1000 === 0) {
+      llog({msg: `parsing ${index}`});
+    }
+    return videoId;
+  };
+
   const parse = data => {
     llog({msg: 'parsing file'});
-    const $ = cheerio.load(data);
+    $ = cheerio.load(data);
     llog({msg: 'loaded in parser'});
-    const videos = $('.mdl-grid .content-cell:nth-child(2)')
-      .map((index, elem) => {
-        const title = $(elem).find('a').get(0);
-        const channel = $(elem).find('a').get(1);
-        const date = $(elem).children().last().get(0).next.data;
-        const video = {
-          title: $(title).text(),
-          videoLink: $(title).attr('href'),
-          channel: $(channel).text(),
-          channelLink: $(channel).attr('href'),
-          date: date
-        };
-        if(index % 1000 === 0) {
-          llog({msg: `${index}`});
-        }
-        return video;
-      }).get();
+    const videosIds = $('.mdl-grid .content-cell:nth-child(2)').map(parseVideoId).get();
+    llog({msg: `parsed ${videosIds.length} videos`});
+    return videosIds;
+  };
+
+  const enrich = async videosIds => {
+    const idsChunks = _(videosIds)
+      .chunk(commonParams.maxResults)
+      .map(c => _.join(c, ',') )
+      .value();
+    let enrichedVideos = [];
+    for(let ids of idsChunks) {
+      const videosList = await getVideosList(_.assign({id: ids}, commonParams));
+      enrichedVideos = enrichedVideos.concat(videosList);
+      llog({msg: `enrich ${enrichedVideos.length}/${videosIds.length} videos`});
+    }
+    llog({msg: `enriched ${enrichedVideos.length}`});
+    return enrichedVideos;
+  };
+
+  const save = videos => {
     db.set('history', videos).write();
     llog({msg: `${videos.length}`, status: STEP_STATUS.COMPLETE});
   };
 
   await readFile(historyFile)
     .then(parse)
+    .then(enrich)
+    .then(save)
     .then(() => db.set('last_parse.watch_history', hash).write())
     .catch(() => llog({msg: 'no file' + ' ' + historyFile, status: STEP_STATUS.COMPLETE}));
 };
