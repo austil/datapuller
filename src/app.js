@@ -8,10 +8,16 @@ const ORDERED_PULLERS = [
   PULLERS.POCKET,
   PULLERS.YOUTUBE,
   PULLERS.TWITTER,
+  PULLERS.REDDIT
 ];
 
 const output = {}; // 'puller_name': []
 const progress = {}; // 'puller_name': 0
+
+ORDERED_PULLERS.forEach(puller => {
+  output[puller.NAME] = ['Waiting'];
+  progress[puller.NAME] = 0;
+});
 
 const renderLine = puller => {
   const pullerKey = puller.NAME;
@@ -27,14 +33,11 @@ const renderLine = puller => {
 };
 
 const renderFrame = (message) => {
-  if(_.isNil(output[message.puller])) {
-    output[message.puller] = [];
-    progress[message.puller] = 0;
-  }
-
-  output[message.puller][message.step] = message.msg;
-  if(message.status === PULLERS.STEP_STATUS.COMPLETE) {
-    progress[message.puller] += 1; 
+  if (message) {
+    output[message.puller][message.step] = message.msg;
+    if(message.status === PULLERS.STEP_STATUS.COMPLETE) {
+      progress[message.puller] += 1; 
+    }
   }
 
   const frame = _(ORDERED_PULLERS)
@@ -46,9 +49,12 @@ const renderFrame = (message) => {
   return frame;
 };
 
+logUpdate(renderFrame());
+
 const pocket = spawn('node', ['./src/pocket_pull.js'], {stdio: ['pipe', 'pipe', 'pipe', 'ipc']});
 const twitter = spawn('node', ['./src/twitter_pull.js'], {stdio: ['pipe', 'pipe', 'pipe', 'ipc']});
 const youtube = spawn('node', ['./src/youtube_pull.js'], {stdio: ['pipe', 'pipe', 'pipe', 'ipc']});
+const reddit = spawn('node', ['./src/reddit_pull.js'], {stdio: ['pipe', 'pipe', 'pipe', 'ipc']});
 
 pocket.on('message', (message) => {
   logUpdate(renderFrame(message));
@@ -59,5 +65,9 @@ twitter.on('message', (message) => {
 });
 
 youtube.on('message', (message) => {
+  logUpdate(renderFrame(message));
+});
+
+reddit.on('message', (message) => {
   logUpdate(renderFrame(message));
 });

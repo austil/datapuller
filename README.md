@@ -7,11 +7,11 @@ Currently supporting :
 - [X] Pocket : unread, archived & favorites
 - [X] Twitter : likes, tweets, retweets
 - [X] Youtube : likes, favorites, history (via manual import & parsing)
+- [X] Reddit : upvoted, saved
 - [ ] Github : stars
-- [ ] Reddit : upvoted, saved
 - [ ] Facebook : likes
 - [ ] Spotify : saved tracks & albums
-- ~~[X] Browser bookmarks (avaible for analysis via manual import)~~
+- [X] ~~Browser bookmarks (avaible for analysis via manual import)~~
 
 ## Setup
 

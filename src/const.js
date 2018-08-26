@@ -1,9 +1,8 @@
 const chalk = require('chalk');
 
 const PULLER_STATUS = {
-  LOADING: 'LOADING',
-  NOT_CONFIGURED: 'NOT_CONFIGURED',
-  NOT_INITIALIZED: 'NOT_INITIALIZED',
+  NOT_CONFIGURED: 'NOT_CONFIGURED', // api credentials missing
+  NOT_INITIALIZED: 'NOT_INITIALIZED', // api tokens missing
   READY: 'READY'
 };
 
@@ -34,10 +33,18 @@ const YOUTUBE = {
   STEPS: 3
 };
 
+const REDDIT = {
+  NAME: 'reddit',
+  FILE: './db/reddit_db.json',
+  COLOR: chalk.bold.yellow,
+  STEPS: 2
+};
+
 module.exports = {
   PULLER_STATUS,
   STEP_STATUS,
   POCKET,
   TWITTER,
-  YOUTUBE
+  YOUTUBE,
+  REDDIT
 };
