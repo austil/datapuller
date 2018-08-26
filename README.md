@@ -13,6 +13,15 @@ Currently supporting :
 - [ ] Spotify : saved tracks & albums
 - [X] ~~Browser bookmarks (avaible for analysis via manual import)~~
 
+## Run
+
+```bash
+# A specific puller (for setup or debug), e.g. twitter
+node src/twitter_pull.js
+# All puler at one
+npm run start
+```
+
 ## Setup
 
 * Run `npm install`

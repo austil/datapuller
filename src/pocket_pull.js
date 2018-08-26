@@ -141,13 +141,13 @@ const removeArchivedUnread = () => {
 
   // Data Pull
   const since = db.get('last_pull').value();
-  db.set('last_pull', _.floor(_.now() / 1000)).write();
   
   await Promise.all([
     pullFavorite(since),
     pullArchived(since),
     pullUnread(since)
   ]);
-
+  
   removeArchivedUnread();
+  db.set('last_pull', _.floor(_.now() / 1000)).write();
 })();

@@ -25,7 +25,8 @@ const db = low(adapter);
 
 db.defaults({
   tweets: [],
-  favorite: []
+  favorite: [],
+  last_pull: ''
 }).write();
 
 // Data puller
@@ -113,4 +114,6 @@ const pullFavorite = puller({
     pullFavorite(lastFavorite ? lastFavorite.id_str : null),
     pullTweets(lastTweets ? lastTweets.id_str : null)
   ]).catch(exception => console.log(exception));
+
+  db.set('last_pull', _.floor(_.now() / 1000)).write();
 })();

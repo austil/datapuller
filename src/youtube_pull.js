@@ -38,6 +38,7 @@ db.defaults({
   likes: [],
   history: [],
   favorites: [],
+  last_pull: '',
   last_parse: {
     watch_history: ''
   }
@@ -241,4 +242,6 @@ const parseHistory = async (lastParse) => {
     pullFavorites(lastFavorite ? lastFavorite.id : null),
   ]);
   parseHistory(lastHistoryParse);
+
+  db.set('last_pull', _.floor(_.now() / 1000)).write();
 })();
