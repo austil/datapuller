@@ -1,6 +1,7 @@
 # Data Puller
 
-Get raw access to your data from various internet services.
+This repository is a collection of script I've made to conveniently pull my personnal data from internet services I use the most.  
+The goal is to get everything about me in one place for futher analysis (data science with R, full text search with Elastic, ...).
 
 Currently supporting :
 
@@ -26,7 +27,7 @@ npm run start
 
 * Run `npm install`
 * Provide your API Credentials via env variables or a `./config.json` file (have a look at `./src/config_manager.js`)
-* Initialize every configured puller by launching them separatly
+* Go through the auth procedure of every configured puller by launching them separatly
 * Run all puller with `npm run start`
 
 ## Restrictions
