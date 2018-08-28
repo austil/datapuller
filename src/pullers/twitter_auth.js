@@ -1,7 +1,8 @@
+// Npm dependencies
 const request = require('request-promise-native');
 
 // Local dependencies
-const auth = require('./auth_manager');
+const auth = require('../auth_manager');
 
 const getBearerToken = async (config) => {
   const {consumer_key, consumer_secret} = config;

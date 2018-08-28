@@ -2,7 +2,7 @@ const { spawn } = require('child_process');
 const logUpdate = require('log-update');
 const _ = require('lodash');
 
-const PULLERS = require('./const');
+const PULLERS = require('./pullers_const');
 
 const ORDERED_PULLERS = [
   PULLERS.POCKET,
@@ -19,27 +19,27 @@ ORDERED_PULLERS.forEach(puller => {
   progress[puller.NAME] = 0;
 });
 
+const handleMessage = (message) => {
+  output[message.puller][message.step] = message.msg;
+  if(message.status === PULLERS.STEP_STATUS.COMPLETE) {
+    progress[message.puller] += 1; 
+  }
+};
+
 const renderLine = puller => {
   const pullerKey = puller.NAME;
   if(_.has(output, pullerKey) === false) { return ''; }
 
-  const isComplete = progress[pullerKey] >= puller.STEPS;
+  const isComplete = progress[pullerKey] >= _.size(puller.STEPS);
 
   const pullerStatus = isComplete ? '✔' : '~';
-  const pullerProgress = progress[pullerKey] + '/' + puller.STEPS + ' ';
+  const pullerProgress = progress[pullerKey] + '/' + _.size(puller.STEPS) + ' ';
   const pullerName =  puller.COLOR(_.capitalize(pullerKey + ' > '));
   const pullerValues = output[pullerKey].join(', ');
   return pullerStatus + ' ' + pullerProgress + pullerName + pullerValues;
 };
 
-const renderFrame = (message) => {
-  if (message) {
-    output[message.puller][message.step] = message.msg;
-    if(message.status === PULLERS.STEP_STATUS.COMPLETE) {
-      progress[message.puller] += 1; 
-    }
-  }
-
+const renderFrame = () => {
   const frame = _(ORDERED_PULLERS)
     .map(renderLine)
     .compact()
@@ -51,23 +51,27 @@ const renderFrame = (message) => {
 
 logUpdate(renderFrame());
 
-const pocket = spawn('node', ['./src/pocket_pull.js'], {stdio: ['pipe', 'pipe', 'pipe', 'ipc']});
-const twitter = spawn('node', ['./src/twitter_pull.js'], {stdio: ['pipe', 'pipe', 'pipe', 'ipc']});
-const youtube = spawn('node', ['./src/youtube_pull.js'], {stdio: ['pipe', 'pipe', 'pipe', 'ipc']});
-const reddit = spawn('node', ['./src/reddit_pull.js'], {stdio: ['pipe', 'pipe', 'pipe', 'ipc']});
+const pocket = spawn('node', [PULLERS.POCKET.PATH], {stdio: ['pipe', 'pipe', 'pipe', 'ipc']});
+const twitter = spawn('node', [PULLERS.TWITTER.PATH], {stdio: ['pipe', 'pipe', 'pipe', 'ipc']});
+const youtube = spawn('node', [PULLERS.YOUTUBE.PATH], {stdio: ['pipe', 'pipe', 'pipe', 'ipc']});
+const reddit = spawn('node', [PULLERS.REDDIT.PATH], {stdio: ['pipe', 'pipe', 'pipe', 'ipc']});
 
 pocket.on('message', (message) => {
-  logUpdate(renderFrame(message));
+  handleMessage(message);
+  logUpdate(renderFrame());
 });
 
 twitter.on('message', (message) => {
-  logUpdate(renderFrame(message));
+  handleMessage(message);
+  logUpdate(renderFrame());
 });
 
 youtube.on('message', (message) => {
-  logUpdate(renderFrame(message));
+  handleMessage(message);
+  logUpdate(renderFrame());
 });
 
 reddit.on('message', (message) => {
-  logUpdate(renderFrame(message));
+  handleMessage(message);
+  logUpdate(renderFrame());
 });

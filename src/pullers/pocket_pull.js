@@ -5,34 +5,20 @@ const low = require('lowdb');
 const FileSync = require('lowdb/adapters/FileSync');
 
 // Local dependencies
-const {logger} = require('./helpers');
-const auth = require('./auth_manager');
+const {logger} = require('../helpers');
+const auth = require('../auth_manager');
 const pocketAuth = require('./pocket_auth');
-const config = require('./config_manager').pocket;
+const config = require('../config_manager').pocket;
 
-const {POCKET: PULLER, STEP_STATUS} = require('./const');
+const {POCKET: PULLER, STEP_STATUS} = require('../pullers_const');
+const {STEPS} = PULLER;
 const log = logger(PULLER);
 const pocket = new pocketWrapper(config);
-
-const STEPS = {
-  FAVORITE: 0,
-  ARCHIVED: 1,
-  UNREAD: 2,
-  POST_PROCESS: 3
-};
 
 // Database
 const adapter = new FileSync(PULLER.FILE);
 const db = low(adapter);
-
-db.defaults({
-  archived: {
-    favorite: [],
-    others: []
-  },
-  unread: [],
-  last_pull: ''
-}).write();
+db.defaults(PULLER.DEFAULT_DB).write();
 
 // Data puller
 const pocketGet = (params) => (new Promise((resolve, reject) => {

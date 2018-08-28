@@ -5,29 +5,20 @@ const low = require('lowdb');
 const FileSync = require('lowdb/adapters/FileSync');
 
 // Local dependencies
-const {logger} = require('./helpers');
-const auth = require('./auth_manager');
+const {logger} = require('../helpers');
+const auth = require('../auth_manager');
 const twitterAuth = require('./twitter_auth');
-const config = require('./config_manager').twitter;
+const config = require('../config_manager').twitter;
 
-const {TWITTER: PULLER, STEP_STATUS} = require('./const');
+const {TWITTER: PULLER, STEP_STATUS} = require('../pullers_const');
+const {STEPS} = PULLER;
 const log = logger(PULLER);
 let twitter = {};
-
-const STEPS = {
-  FAVORITE: 0,
-  TWEETS: 1
-};
 
 // Database
 const adapter = new FileSync(PULLER.FILE);
 const db = low(adapter);
-
-db.defaults({
-  tweets: [],
-  favorite: [],
-  last_pull: ''
-}).write();
+db.defaults(PULLER.DEFAULT_DB).write();
 
 // Data puller
 const twitterGet = (endpoint, params) => (new Promise((resolve, reject) => {

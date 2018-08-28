@@ -1,3 +1,4 @@
+// Node dependencies
 const fs = require('fs');
 const crypto = require('crypto');
 
@@ -11,12 +12,13 @@ const FileSync = require('lowdb/adapters/FileSync');
 const cheerio = require('cheerio');
 
 // Local dependencies
-const {logger} = require('./helpers');
-const auth = require('./auth_manager');
+const {logger} = require('../helpers');
+const auth = require('../auth_manager');
 const youtubeAuth = require('./youtube_auth');
-const config = require('./config_manager').youtube;
+const config = require('../config_manager').youtube;
 
-const {YOUTUBE: PULLER, STEP_STATUS} = require('./const');
+const {YOUTUBE: PULLER, STEP_STATUS} = require('../pullers_const');
+const {STEPS} = PULLER;
 const log = logger(PULLER);
 
 const clientSecret = config.installed.client_secret;
@@ -24,25 +26,10 @@ const clientId = config.installed.client_id;
 const redirectUrl = config.installed.redirect_uris[0];
 const oauth2Client = new OAuth2(clientId, clientSecret, redirectUrl);
 
-const STEPS = {
-  LIKES: 0,
-  FAVORITE: 1,
-  HISTORY: 2
-};
-
 // Database
 const adapter = new FileSync(PULLER.FILE);
 const db = low(adapter);
-
-db.defaults({
-  likes: [],
-  history: [],
-  favorites: [],
-  last_pull: '',
-  last_parse: {
-    watch_history: ''
-  }
-}).write();
+db.defaults(PULLER.DEFAULT_DB).write();
 
 const getDefaultsPlaylists = (oauth2Client) => (new Promise((resolve, reject) => {
   const channelInfo = {

@@ -2,7 +2,7 @@
 const readline = require('readline');
 
 // Local dependencies
-const auth = require('./auth_manager');
+const auth = require('../auth_manager');
 
 // Api Token
 const getRequestToken = ({pocket, config}) => (new Promise((resolve, reject) => {

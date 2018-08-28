@@ -2,7 +2,7 @@
 const readline = require('readline');
 
 // Local dependencies
-const auth = require('./auth_manager');
+const auth = require('../auth_manager');
 
 const SCOPES = ['https://www.googleapis.com/auth/youtube.readonly'];
 
