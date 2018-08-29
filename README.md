@@ -36,6 +36,7 @@ npm run start
 
 ### Youtube
 
-The watch history is not accessible through the Youtube API for privacy reasons. 
+The watch history and the watch later playlist are [not accessible](https://developers.google.com/youtube/v3/revision_history#september-15-2016) through the Youtube API for privacy reasons.  
 To get arround this you can obtain a `watch-history.html` file via the [Google Takeout page](https://takeout.google.com/settings/takeout).
-Then, put this file in the `drop_zone` folder so it can be parsed by the youtube puller on the next run.
+Then, put this file in the `drop_zone` folder so it can be parsed by the youtube puller on the next run.  
+As for the watch later playlist, the Google Takeout export is already a JSON file.
