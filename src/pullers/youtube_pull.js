@@ -151,6 +151,9 @@ const parseHistory = async (lastParse) => {
 
   const parseVideoId = (index, elem) => {
     const title = $(elem).find('a').get(0);
+    if(title === undefined) {
+      return null; // deleted video
+    }
     const videoId = $(title).attr('href').split('?v=')[1];
     if(index % 1000 === 0) {
       llog({msg: `parsing ${index}`});
@@ -162,7 +165,7 @@ const parseHistory = async (lastParse) => {
     llog({msg: 'parsing file'});
     $ = cheerio.load(data);
     llog({msg: 'loaded in parser'});
-    const videosIds = $('.mdl-grid .content-cell:nth-child(2)').map(parseVideoId).get();
+    const videosIds = _.compact($('.mdl-grid .content-cell:nth-child(2)').map(parseVideoId).get());
     llog({msg: `parsed ${videosIds.length} videos`});
     return videosIds;
   };
@@ -173,10 +176,10 @@ const parseHistory = async (lastParse) => {
       .map(c => _.join(c, ',') )
       .value();
     let enrichedVideos = [];
-    for(let ids of idsChunks) {
+    for(const ids of idsChunks) {
       const videosList = await getVideosList(_.assign({id: ids}, commonParams));
       enrichedVideos = enrichedVideos.concat(videosList);
-      llog({msg: `enrich ${enrichedVideos.length}/${videosIds.length} videos`});
+      llog({msg: `enrich ${enrichedVideos.length}/${videosIds.length}(max) videos`});
     }
     llog({msg: `enriched ${enrichedVideos.length}`});
     return enrichedVideos;
@@ -188,11 +191,12 @@ const parseHistory = async (lastParse) => {
   };
 
   await readFile(historyFile)
+    .catch(() => llog({msg: 'no file' + ' ' + historyFile, status: STEP_STATUS.COMPLETE}))
     .then(parse)
     .then(enrich)
     .then(save)
     .then(() => db.set('last_parse.watch_history', hash).write())
-    .catch(() => llog({msg: 'no file' + ' ' + historyFile, status: STEP_STATUS.COMPLETE}));
+    .catch(err => console.error(err));
 };
 
 (async () => {

@@ -16,6 +16,8 @@ Currently supporting :
 - [ ] Spotify : saved tracks & albums
 - [X] ~~Browser bookmarks (avaible for analysis via manual import)~~
 
+:hospital: Have a look at [The Data Detox Kit](https://datadetox.myshadow.org/en/detox).
+
 ## Run
 
 ```bash
