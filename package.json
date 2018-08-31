@@ -19,6 +19,7 @@
     "node-getpocket": "^1.0.0",
     "request": "^2.88.0",
     "request-promise-native": "^1.0.5",
+    "simple-statistics": "^6.1.0",
     "snoowrap": "^1.15.2",
     "twitter": "^1.7.1"
   },
