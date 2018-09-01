@@ -1,6 +1,5 @@
 const { spawn } = require('child_process');
 const logUpdate = require('log-update');
-const chalk = require('chalk');
 const _ = require('lodash');
 
 const { getPullerStatus } = require('./puller_status');
@@ -56,6 +55,12 @@ const renderFrame = () => {
 
 logUpdate(renderFrame());
 
+const logFreeze = (msg) => {
+  logUpdate.clear();
+  console.log(msg);
+  logUpdate(renderFrame());
+};
+
 const pullersQueue = ORDERED_PULLERS.filter(p => getPullerStatus(p) === PULLERS.PULLER_STATUS.READY);
 
 const spawnProcess = () => {
@@ -65,6 +70,14 @@ const spawnProcess = () => {
   process.on('message', (message) => {
     handleMessage(message);
     logUpdate(renderFrame());
+  });
+
+  process.stdout.on('data', (data) => {
+    logFreeze(_.capitalize(currentPuller.NAME) + ': ' + data.toString());
+  });
+
+  process.stderr.on('data', (data) => {
+    logFreeze(_.capitalize(currentPuller.NAME) + ': ' + data.toString());
   });
 
   process.on('exit', () => {
