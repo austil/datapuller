@@ -40,11 +40,13 @@ const TWITTER = {
   PATH: './src/pullers/twitter_pull.js',
   STEPS: {
     FAVORITE: 0,
-    TWEETS: 1
+    TWEETS: 1,
+    TIMELINE: 2,
   },
   DEFAULT_DB: {
     tweets: [],
     favorite: [],
+    timeline_sample: [],
     last_pull: ''
   }
 };

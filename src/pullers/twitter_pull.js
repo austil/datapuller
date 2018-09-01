@@ -6,14 +6,12 @@ const FileSync = require('lowdb/adapters/FileSync');
 
 // Local dependencies
 const {logger} = require('../helpers');
-const auth = require('../auth_manager');
-const twitterAuth = require('./twitter_auth');
 const config = require('../config_manager').twitter;
 
 const {TWITTER: PULLER, STEP_STATUS} = require('../pullers_const');
 const {STEPS} = PULLER;
 const log = logger(PULLER);
-let twitter = {};
+const twitter = new twitterWrapper(config);
 
 // Database
 const adapter = new FileSync(PULLER.FILE);
@@ -30,7 +28,7 @@ const twitterGet = (endpoint, params) => (new Promise((resolve, reject) => {
   });
 }));
 
-const pullAll = async (endpoint, params, logger = log) => {
+const pullLoop = async (endpoint, params, logger = log) => {
   let moreToPull = true;
   let dataSorted = [];
 
@@ -38,7 +36,7 @@ const pullAll = async (endpoint, params, logger = log) => {
     const {tweets: data} = await twitterGet(endpoint, params);
     if(data.length > 0) { 
       logger({msg: `${dataSorted.length + data.length}`});
-      dataSorted = _(data).sortBy('id_str').concat(dataSorted).value();
+      dataSorted = _(data).sortBy('id').concat(dataSorted).value();
       params.max_id = _.first(dataSorted).id_str;
     }
     moreToPull = data.length >= params.count - 50;
@@ -59,13 +57,13 @@ const puller = ({name, step, endpoint, params, dbProps}) => {
     if(sinceId) {
       pullerParams.since_id = sinceId;
       llog({msg: 'starting update'});
-      const tweets = await pullAll(endpoint, pullerParams, llog);
+      const tweets = await pullLoop(endpoint, pullerParams, llog);
       db.update(dbProps, list => list.concat(tweets)).write();
       llog({msg: `${tweets.length}`, status: STEP_STATUS.COMPLETE});
     }
     else {
       llog({msg: 'first pull'});
-      const tweets = await pullAll(endpoint, pullerParams, llog);
+      const tweets = await pullLoop(endpoint, pullerParams, llog);
       db.set(dbProps, tweets).write();
       llog({msg: `${tweets.length}`, status: STEP_STATUS.COMPLETE});
     }
@@ -88,14 +86,15 @@ const pullFavorite = puller({
   dbProps: 'favorite'
 });
 
+const pullTimelineSample = puller({
+  name: 'Timeline',
+  step: STEPS.TIMELINE,
+  endpoint: 'statuses/home_timeline', // last 800 tweets
+  params: {},
+  dbProps: 'timeline_sample',
+});
+
 (async () => {
-  // Api tokens
-  if(auth.has(PULLER.NAME) === false) {
-    log({msg: 'No bearer token found, lets get one'});
-    await twitterAuth.getBearerToken(config);
-  }
-  config.bearer_token = auth.get(PULLER.NAME).bearer_token;
-  twitter = new twitterWrapper(config);
   log({msg: 'Ready !'});
 
   const lastFavorite = db.get('favorite').last().value();
@@ -103,7 +102,8 @@ const pullFavorite = puller({
 
   await Promise.all([
     pullFavorite(lastFavorite ? lastFavorite.id_str : null),
-    pullTweets(lastTweets ? lastTweets.id_str : null)
+    pullTweets(lastTweets ? lastTweets.id_str : null),
+    pullTimelineSample(),
   ]).catch(exception => console.log(exception));
 
   db.set('last_pull', _.floor(_.now() / 1000)).write();
