@@ -1,7 +1,9 @@
 const { spawn } = require('child_process');
 const logUpdate = require('log-update');
+const chalk = require('chalk');
 const _ = require('lodash');
 
+const { getPullerStatus } = require('./puller_status');
 const PULLERS = require('./pullers_const');
 
 const ORDERED_PULLERS = [
@@ -15,8 +17,9 @@ const output = {}; // 'puller_name': []
 const progress = {}; // 'puller_name': 0
 
 ORDERED_PULLERS.forEach(puller => {
-  output[puller.NAME] = ['Waiting'];
-  progress[puller.NAME] = 0;
+  const status = getPullerStatus(puller);
+  output[puller.NAME] = [status];
+  progress[puller.NAME] = status === PULLERS.PULLER_STATUS.READY ? 0 : -1;
 });
 
 const handleMessage = (message) => {
@@ -31,9 +34,11 @@ const renderLine = puller => {
   if(_.has(output, pullerKey) === false) { return ''; }
 
   const isComplete = progress[pullerKey] >= _.size(puller.STEPS);
+  const isDisabled = progress[pullerKey] < 0;
 
-  const pullerStatus = isComplete ? '✔' : '~';
-  const pullerProgress = progress[pullerKey] + '/' + _.size(puller.STEPS) + ' ';
+  // Refactor this pls
+  const pullerStatus = isDisabled ? '✕' : (isComplete ? '✔' : '~');
+  const pullerProgress = (isDisabled ? '.' : progress[pullerKey]) + '/' + _.size(puller.STEPS) + ' ';
   const pullerName =  puller.COLOR(_.capitalize(pullerKey + ' > '));
   const pullerValues = output[pullerKey].join(', ');
   return pullerStatus + ' ' + pullerProgress + pullerName + pullerValues;
@@ -51,27 +56,24 @@ const renderFrame = () => {
 
 logUpdate(renderFrame());
 
-const pocket = spawn('node', [PULLERS.POCKET.PATH], {stdio: ['pipe', 'pipe', 'pipe', 'ipc']});
-const twitter = spawn('node', [PULLERS.TWITTER.PATH], {stdio: ['pipe', 'pipe', 'pipe', 'ipc']});
-const youtube = spawn('node', [PULLERS.YOUTUBE.PATH], {stdio: ['pipe', 'pipe', 'pipe', 'ipc']});
-const reddit = spawn('node', [PULLERS.REDDIT.PATH], {stdio: ['pipe', 'pipe', 'pipe', 'ipc']});
+const pullersQueue = ORDERED_PULLERS.filter(p => getPullerStatus(p) === PULLERS.PULLER_STATUS.READY);
 
-pocket.on('message', (message) => {
-  handleMessage(message);
-  logUpdate(renderFrame());
-});
+const spawnProcess = () => {
+  const currentPuller = pullersQueue.shift();
+  const process = spawn('node', [currentPuller.PATH], {stdio: ['pipe', 'pipe', 'pipe', 'ipc']});
 
-twitter.on('message', (message) => {
-  handleMessage(message);
-  logUpdate(renderFrame());
-});
+  process.on('message', (message) => {
+    handleMessage(message);
+    logUpdate(renderFrame());
+  });
 
-youtube.on('message', (message) => {
-  handleMessage(message);
-  logUpdate(renderFrame());
-});
+  process.on('exit', () => {
+    if(pullersQueue.length > 0) {
+      spawnProcess();
+    }
+  });
+};
 
-reddit.on('message', (message) => {
-  handleMessage(message);
-  logUpdate(renderFrame());
-});
+for(let n = 0; n < Math.min(PULLERS.MAX_CONCURENCY, pullersQueue.length); n++) {
+  spawnProcess();
+}

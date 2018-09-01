@@ -201,7 +201,7 @@ const parseHistory = async (lastParse) => {
 
 (async () => {
   // Api tokens
-  if(auth.has('youtube') === false) {
+  if(auth.has(PULLER.NAME) === false) {
     log({msg: 'No access token found, lets get one'});
     await youtubeAuth.getAccess({oauth2Client, log});
   }

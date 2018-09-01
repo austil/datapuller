@@ -22,7 +22,7 @@ Currently supporting :
 
 ```bash
 # A specific puller (for setup or debug), e.g. twitter
-node src/twitter_pull.js
+node src/pullers/twitter_pull.js
 # All puler at one
 npm run start
 ```

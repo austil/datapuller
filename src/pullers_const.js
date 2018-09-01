@@ -1,9 +1,11 @@
 const chalk = require('chalk');
 
+const MAX_CONCURENCY = 3;
+
 const PULLER_STATUS = {
-  NOT_CONFIGURED: 'NOT_CONFIGURED', // api credentials missing
-  NOT_INITIALIZED: 'NOT_INITIALIZED', // api tokens missing
-  READY: 'READY'
+  NOT_CONFIGURED: 'Not Configured', // api credentials missing
+  NOT_INITIALIZED: 'Not Initialized', // api tokens missing
+  READY: 'Ready'
 };
 
 const STEP_STATUS = {
@@ -13,10 +15,11 @@ const STEP_STATUS = {
 };
 
 const POCKET = {
-  NAME: 'pocket', // Key for diplay, auth cache, process message ID
+  NAME: 'pocket', // Key for diplay, config, auth cache, process message ID
   FILE: './db/pocket_db.json',
   COLOR: chalk.bold.magenta,
   PATH: './src/pullers/pocket_pull.js',
+  AUTH: true,
   STEPS: {
     FAVORITE: 0,
     ARCHIVED: 1,
@@ -38,6 +41,7 @@ const TWITTER = {
   FILE: './db/twitter_db.json',
   COLOR: chalk.bold.blue,
   PATH: './src/pullers/twitter_pull.js',
+  AUTH: false,
   STEPS: {
     FAVORITE: 0,
     TWEETS: 1,
@@ -56,6 +60,7 @@ const YOUTUBE = {
   FILE: './db/youtube_db.json',
   COLOR: chalk.bold.red,
   PATH: './src/pullers/youtube_pull.js',
+  AUTH: true,
   STEPS: {
     LIKES: 0,
     FAVORITE: 1,
@@ -77,6 +82,7 @@ const REDDIT = {
   FILE: './db/reddit_db.json',
   COLOR: chalk.bold.yellow,
   PATH: './src/pullers/reddit_pull.js',
+  AUTH: false,
   STEPS: {
     UPVOTED: 0,
     SAVED: 1
@@ -89,6 +95,7 @@ const REDDIT = {
 };
 
 module.exports = {
+  MAX_CONCURENCY,
   PULLER_STATUS,
   STEP_STATUS,
   POCKET,
