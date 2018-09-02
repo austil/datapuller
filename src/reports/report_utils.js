@@ -24,6 +24,12 @@ const makeTable = (title, data, { formatNumber = _.identity, lastRowBold = true 
   return `${header}\n${line}\n${body}`;
 };
 
+const getDomainFromURL = (url) => {
+  const matches = url.match(/^https?:\/\/([^/:?#]+)(?:[/:?#]|$)/i);
+  return matches ? matches[1] : '';
+};
+
 module.exports = {
-  makeTable
+  makeTable,
+  getDomainFromURL
 };
