@@ -119,7 +119,7 @@ const removeArchivedUnread = () => {
   // Api tokens
   if(auth.has(PULLER.NAME) === false) {
     log({msg: 'No access token found, lets get one'});
-    await pocketAuth.getAccess({pocket, config, log});
+    await pocketAuth.getAccess({ pocket, config, log: msg => log({msg}) });
   }
   config.access_token = auth.get(PULLER.NAME).access_token;
   pocket.refreshConfig(config);
