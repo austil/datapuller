@@ -29,7 +29,15 @@ const getDomainFromURL = (url) => {
   return matches ? matches[1] : '';
 };
 
+// Thx to https://stackoverflow.com/a/19910622
+const getWeek = (date) => {
+  var onejan = new Date(date.getFullYear(),0,1);
+  var millisecsInDay = 86400000;
+  return Math.ceil((((date - onejan) /millisecsInDay) + onejan.getDay()+1)/7);
+};
+
 module.exports = {
   makeTable,
-  getDomainFromURL
+  getDomainFromURL,
+  getWeek
 };

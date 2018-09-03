@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const sstats = require('simple-statistics');
-const {makeTable, getDomainFromURL} = require('./report_utils');
+const {makeTable, getDomainFromURL, getWeek} = require('./report_utils');
 const {POCKET} = require('../pullers_const');
 const {unread, archived} = require('../../' + POCKET.FILE);
 
@@ -113,10 +113,61 @@ const reportTopFavoriteSources = makeTable(
   { lastRowBold: false }
 );
 
+// Oldest post
+const getTimeAdded = a => new Date(parseInt(a.time_added) * 1000);
+const getTimeRead = a => new Date(parseInt(a.time_read) * 1000);
+const oldestSaved = _.minBy(allArray, getTimeAdded);
+const oldestDate = getTimeAdded(oldestSaved);
+const reportOldest = `You first article was saved on ${oldestDate.toUTCString()}`;
+
+// Pace of adding article vs reading article
+const yearWeekKey = (article, dateProp) => {
+  const d = dateProp(article);
+  return `${d.getFullYear()}-${getWeek(d)}`;
+};
+const yearMonthKey = (article, dateProp) => {
+  const d = dateProp(article);
+  return `${d.getFullYear()}-${d.getMonth()}`;
+};
+const yearKey = (article, dateProp) => dateProp(article).getFullYear();
+
+const articlePerPeriod = (array, periodFn, dateFn) => {
+  return _(array)
+    .groupBy(_.partial(periodFn, _, dateFn))
+    .toPairs()
+    .map(([k, items]) => [k, items.length])
+    .value();
+};
+
+const addedPerWeek = articlePerPeriod(allArray, yearWeekKey, getTimeAdded);
+const readPerWeek = articlePerPeriod(archivedArray, yearWeekKey, getTimeRead);
+const addedPerMonth = articlePerPeriod(allArray, yearMonthKey, getTimeAdded);
+const readPerMonth = articlePerPeriod(archivedArray, yearMonthKey, getTimeRead);
+const addedPerYear = articlePerPeriod(allArray, yearKey, getTimeAdded);
+const readPerYear = articlePerPeriod(archivedArray, yearKey, getTimeRead);
+
+const paceStats = array => [
+  sstats.mean, sstats.standardDeviation, sstats.min, sstats.median, sstats.max
+].map(fn => fn(array));
+
+const reportPaceStats = makeTable(
+  'Pace (mean, sd, min, median, max)',
+  [
+    ['Added per Week:', ...paceStats(addedPerWeek.map(([ , v]) => v)) ],
+    ['Read per Week:', ...paceStats(readPerWeek.map(([ , v]) => v)) ],
+    ['--'],
+    ['Added per Month:', ...paceStats(addedPerMonth.map(([ , v]) => v)) ],
+    ['Read per Month:', ...paceStats(readPerMonth.map(([ , v]) => v)) ],
+    ['--'],
+    ['Added per Year:', ...paceStats(addedPerYear.map(([ , v]) => v)) ],
+    ['Read per Year:', ...paceStats(readPerYear.map(([ , v]) => v)) ],
+  ],
+  { formatNumber: n => n.toFixed(1), lastRowBold: false }
+);
+
 /*
 TODO
 - Most common word in title (all and favorites ?)
-- Pace of adding article vs reading article
 - Longest without any red and/or any added
 */
 
@@ -137,4 +188,8 @@ ${reportWordFavoriteCorrelation}
 ${reportTopSources}
 
 ${reportTopFavoriteSources}
+
+${reportOldest}
+
+${reportPaceStats}
 `);
