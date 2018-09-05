@@ -47,10 +47,22 @@ const reportTopFav = makeTable(
   { lastRowBold: false }
 );
 
-/*
-TODO
-- Nb of tweets to read per day and their source (aka who's spamming my timeline)
-*/
+// Nb of tweets to read per hour and their source (aka who's spamming my timeline)
+const dayHourKey = tweet => {
+  const d = new Date(tweet.created_at);
+  return `${d.getDay()}@${d.getHours()}h`;
+};
+const timelinePerDayHour = _(timeline_sample)
+  .groupBy(dayHourKey)
+  .toPairs()
+  .tail() // remove first and last cause incomplete
+  .initial()
+  .map(([k, items]) => [k, items.length])
+  .value();
+
+const timelineHourAverage = sstats.mean(timelinePerDayHour.map(([ , nb]) => nb)).toFixed(2);
+const reportTimelinePerHour = `Your home timeline is updated at an average of ${timelineHourAverage} tweets 
+per hour (based on the last ${timeline_sample.length} tweets in your timeline).`;
 
 console.log(`${reportTitle}
 
@@ -59,5 +71,7 @@ ${reportCount}
 ${reportTopRT}
 
 ${reportTopFav}
+
+${reportTimelinePerHour}
 `);
 
