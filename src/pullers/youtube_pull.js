@@ -40,31 +40,34 @@ const getDefaultsPlaylists = (oauth2Client) => (new Promise((resolve, reject) =>
 
   service.channels.list(channelInfo, (err, res) => {
     if (err) {
-      reject('The API returned an error: ' + err);
+      reject('The channels API returned an error: ' + err);
+    } else {
+      resolve(res.data.items[0].contentDetails.relatedPlaylists);
     }
-    resolve(res.data.items[0].contentDetails.relatedPlaylists);
   });
 }));
 
 const getPlaylistItems = (params) => (new Promise((resolve, reject) => {
   service.playlistItems.list(params, (err, res) => {
     if (err) {
-      reject('The API returned an error: ' + err);
+      reject('The playlistItems API returned an error: ' + err);
+    } else {
+      resolve({items: res.data.items, nextPageToken: res.data.nextPageToken});
     }
-    resolve({items: res.data.items, nextPageToken: res.data.nextPageToken});
   });
 }));
 
 const getVideosList = (params) => (new Promise((resolve, reject) => {
   service.videos.list(params, (err, res) => {
     if (err) {
-      reject('The API returned an error: ' + err);
+      reject('The videos API returned an error: ' + err);
+    } else {
+      resolve(res.data.items);
     }
-    resolve(res.data.items);
   });
 }));
 
-const pullAll = async (params, logger = log) => {
+const pullAllIdsFromPlaylist = async (params, logger = log) => {
   let moreToPull = true;
   let dataSorted = [];
 
@@ -72,7 +75,7 @@ const pullAll = async (params, logger = log) => {
     const data = await getPlaylistItems(params);
     
     if(params.sinceId) {
-      const sinceItemIndex = data.items.findIndex(i => i.id === params.sinceId);
+      const sinceItemIndex = data.items.findIndex(i => i.snippet.resourceId.videoId === params.sinceId);
       if(sinceItemIndex >= 0) {
         data.items = data.items.slice(0, sinceItemIndex);
       }
@@ -85,30 +88,50 @@ const pullAll = async (params, logger = log) => {
     params.pageToken = data.nextPageToken;
   }
 
-  return dataSorted;
+  return dataSorted.map(i => i.snippet.resourceId.videoId);
+};
+
+const pullAllVideos = async (videosIds, params, logger = log) => {
+  const idsChunks = _(videosIds)
+    .chunk(params.maxResults)
+    .map(c => _.join(c, ',') )
+    .value();
+  let enrichedVideos = [];
+  for(const ids of idsChunks) {
+    const videosList = await getVideosList(_.assign({id: ids}, commonParams));
+    enrichedVideos = enrichedVideos.concat(videosList);
+    logger({msg: `${enrichedVideos.length}/${videosIds.length} (max)`});
+  }
+  return enrichedVideos;
 };
 
 const commonParams = {
   auth: oauth2Client,
-  part: 'contentDetails,snippet',
+  part: 'id,snippet',
   maxResults: 50
+};
+const videoRessourceParams = {
+  part: 'id,snippet,contentDetails,status,statistics'
 };
 
 const puller = ({name, step, params, dbProps}) => {
   return async (sinceId) => {
     const llog = ({msg, status = STEP_STATUS.IN_PROGRESS}) => log({msg: name + ': ' + msg, status, step});
-    const pullerParams = _.assign(params, commonParams);
+    const playlistPullerParams = _.assign({}, params, commonParams);
+    const videoPullerParams = _.assign({}, params, commonParams, videoRessourceParams);
 
     if(sinceId) {
-      pullerParams.sinceId = sinceId;
+      playlistPullerParams.sinceId = sinceId;
       llog({msg: 'starting update'});
-      const data = await pullAll(pullerParams, llog);
+      const ids = await pullAllIdsFromPlaylist(playlistPullerParams, llog);
+      const data = await pullAllVideos(ids, videoPullerParams, llog);
       db.update(dbProps, list => list.concat(data)).write();
       llog({msg: `${data.length}`, status: STEP_STATUS.COMPLETE});
     } 
     else {
       llog({msg: 'first pull'});
-      const data = await pullAll(pullerParams, llog);
+      const ids = await pullAllIdsFromPlaylist(playlistPullerParams, llog);
+      const data = await pullAllVideos(ids, videoPullerParams, llog);
       db.set(dbProps, data).write();
       llog({msg: `${data.length}`, status: STEP_STATUS.COMPLETE});
     }
@@ -170,30 +193,17 @@ const parseHistory = async (lastParse) => {
     return videosIds;
   };
 
-  const enrich = async videosIds => {
-    const idsChunks = _(videosIds)
-      .chunk(commonParams.maxResults)
-      .map(c => _.join(c, ',') )
-      .value();
-    let enrichedVideos = [];
-    for(const ids of idsChunks) {
-      const videosList = await getVideosList(_.assign({id: ids}, commonParams));
-      enrichedVideos = enrichedVideos.concat(videosList);
-      llog({msg: `enrich ${enrichedVideos.length}/${videosIds.length}(max) videos`});
-    }
-    llog({msg: `enriched ${enrichedVideos.length}`});
-    return enrichedVideos;
-  };
-
   const save = videos => {
     db.set('history', videos).write();
     llog({msg: `${videos.length}`, status: STEP_STATUS.COMPLETE});
   };
 
+  const videoPullerParams = _.assign({}, commonParams, videoRessourceParams);
+
   await readFile(historyFile)
     .catch(() => llog({msg: 'no file' + ' ' + historyFile, status: STEP_STATUS.COMPLETE}))
     .then(parse)
-    .then(enrich)
+    .then(_.partial(pullAllVideos, _, videoPullerParams, llog))
     .then(save)
     .then(() => db.set('last_parse.watch_history', hash).write())
     .catch(err => console.error(err));
@@ -235,4 +245,4 @@ const parseHistory = async (lastParse) => {
   parseHistory(lastHistoryParse);
 
   db.set('last_pull', _.floor(_.now() / 1000)).write();
-})();
+})().catch(err => { console.log(err); });
