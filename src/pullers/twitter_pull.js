@@ -23,8 +23,9 @@ const twitterGet = (endpoint, params) => (new Promise((resolve, reject) => {
   twitter.get(endpoint, params, (error, tweets, response) => {
     if (!error) {
       resolve({response, tweets});
+    } else {
+      reject(error);
     }
-    reject(error);
   });
 }));
 
@@ -107,4 +108,4 @@ const pullTimelineSample = puller({
   ]).catch(exception => console.log(exception));
 
   db.set('last_pull', _.floor(_.now() / 1000)).write();
-})();
+})().catch(err => { console.log(err); });

@@ -40,4 +40,4 @@ const pullSaved = async () => {
     pullSaved(),
   ]);
   db.set('last_pull', _.floor(_.now() / 1000)).write();
-})();
+})().catch(err => { console.log(err); });
