@@ -37,12 +37,26 @@ const getDefaultsPlaylists = (oauth2Client) => (new Promise((resolve, reject) =>
     mine: true,
     part: 'contentDetails'
   };
-
   service.channels.list(channelInfo, (err, res) => {
     if (err) {
       reject('The channels API returned an error: ' + err);
     } else {
       resolve(res.data.items[0].contentDetails.relatedPlaylists);
+    }
+  });
+}));
+
+const getCategories = (oauth2Client) => (new Promise((resolve, reject) => {
+  const categoriesParams = {
+    auth: oauth2Client,
+    part: 'snippet',
+    regionCode: 'US'
+  };
+  service.videoCategories.list(categoriesParams, (err, res) => {
+    if (err) {
+      reject('The videoCategories API returned an error: ' + err);
+    } else {
+      resolve(res.data.items);
     }
   });
 }));
@@ -218,7 +232,14 @@ const parseHistory = async (lastParse) => {
   oauth2Client.credentials = auth.get('youtube');
   log({msg: 'Ready !'});
   
-  const playlists = await getDefaultsPlaylists(oauth2Client, service);
+  const playlists = await getDefaultsPlaylists(oauth2Client);
+
+  const pullCategories = async () => {
+    if (db.get('categories').value().length <= 0) {
+      const categories = await getCategories(oauth2Client);
+      db.set('categories', categories).write();
+    }
+  };
 
   const pullLikes = puller({
     name: 'Likes',
@@ -239,6 +260,7 @@ const parseHistory = async (lastParse) => {
   const lastHistoryParse = db.get('last_parse.watch_history').value();
 
   await Promise.all([
+    pullCategories(),
     pullLikes(lastLike ? lastLike.id : null),
     pullFavorites(lastFavorite ? lastFavorite.id : null),
   ]);
