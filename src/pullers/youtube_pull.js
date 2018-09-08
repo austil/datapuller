@@ -112,7 +112,7 @@ const pullAllVideos = async (videosIds, params, logger = log) => {
     .value();
   let enrichedVideos = [];
   for(const ids of idsChunks) {
-    const videosList = await getVideosList(_.assign({id: ids}, commonParams));
+    const videosList = await getVideosList(_.assign({id: ids}, params));
     enrichedVideos = enrichedVideos.concat(videosList);
     logger({msg: `${enrichedVideos.length}/${videosIds.length} (max)`});
   }
