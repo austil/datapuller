@@ -70,7 +70,7 @@ const YOUTUBE = {
     likes: [],
     history: [],
     favorites: [],
-    categories: {},
+    categories: [],
     last_pull: '',
     last_parse: {
       watch_history: ''

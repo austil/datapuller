@@ -235,10 +235,8 @@ const parseHistory = async (lastParse) => {
   const playlists = await getDefaultsPlaylists(oauth2Client);
 
   const pullCategories = async () => {
-    if (db.get('categories').value().length <= 0) {
-      const categories = await getCategories(oauth2Client);
-      db.set('categories', categories).write();
-    }
+    const categories = await getCategories(oauth2Client);
+    db.set('categories', categories).write();
   };
 
   const pullLikes = puller({
