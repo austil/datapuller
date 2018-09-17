@@ -1,5 +1,8 @@
 # Data Puller
 
+![Pull all CLI](./screenshot_pull.png)
+
+
 This repository is a collection of script I've made to conveniently pull my personnal data from internet services I use the most.  
 The goal is to get everything about me in one place for futher analysis (data science with R, full text search with Elastic, ...).
 
