@@ -92,13 +92,14 @@ const pullAllIdsFromPlaylist = async (params, logger = log) => {
       const sinceItemIndex = data.items.findIndex(i => i.snippet.resourceId.videoId === params.sinceId);
       if(sinceItemIndex >= 0) {
         data.items = data.items.slice(0, sinceItemIndex);
+        moreToPull = false;
       }
     }
     
     if(data.items.length > 0) { logger({msg: `${dataSorted.length + data.items.length}`}); }
     
     dataSorted = data.items.reverse().concat(dataSorted);
-    moreToPull = data.items.length >= params.maxResults;
+    moreToPull = moreToPull && data.nextPageToken !== undefined;
     params.pageToken = data.nextPageToken;
   }
 
