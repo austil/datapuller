@@ -65,6 +65,6 @@ for(let n = 0; n < Math.min(PULLERS.MAX_CONCURENCY, pullersQueue.length); n++) {
 It's, indeed, extremely quircky.  
 NodeJS was chosen for this project because of the plethora of api wrapper available on NPM and the ease of mind provided by an async single threaded architecture.  
 But at some point, true concurency was required in order to not completly block the event loop, so we use good old system processes.  
-Yes it smells.
+Yes, it "smells".
 
-Considering the importance of multi-threading in this project, I will probably suggest Go for a rewrite which is as trendy as JS but a lot less odorous than Node regarding proper concurency.
+Considering the importance of multi-threading in this project, I will probably suggest Go for a rewrite which is as trendy as JS but a lot less "odorous" than Node regarding proper concurency.

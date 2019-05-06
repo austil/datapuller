@@ -177,10 +177,15 @@ const checksumFile = function (algorithm, path) {
 const parseHistory = async (lastParse) => {
   const historyFile = './drop_zone/watch-history.html';
   const llog = ({msg, status = STEP_STATUS.IN_PROGRESS}) => log({msg: 'History: ' + msg, status, step: STEPS.HISTORY});
-  const hash = await checksumFile('md5', historyFile);
 
-  if(lastParse && hash === lastParse) {
-    llog({msg: 'unchanged file', status: STEP_STATUS.COMPLETE});
+  try {
+    const hash = await checksumFile('md5', historyFile);
+    if(lastParse && hash === lastParse) {
+      llog({msg: 'unchanged file', status: STEP_STATUS.COMPLETE});
+      return;
+    }
+  } catch (error) {
+    llog({msg: 'no file' + ' ' + historyFile, status: STEP_STATUS.COMPLETE})
     return;
   }
 
