@@ -9,7 +9,8 @@ const ORDERED_PULLERS = [
   PULLERS.POCKET,
   PULLERS.YOUTUBE,
   PULLERS.TWITTER,
-  PULLERS.REDDIT
+  PULLERS.REDDIT,
+  PULLERS.GITHUB,
 ];
 
 const output = {}; // 'puller_name': []

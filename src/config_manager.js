@@ -32,6 +32,10 @@ const conf = {
     clientSecret: process.env.REDDIT_CLIENT_SECRET,
     username: process.env.REDDIT_USERNAME,
     password: process.env.REDDIT_PASSWORD
+  },
+  github: {
+    username: process.env.GITHUB_USERNAME,
+    personal_access_token: process.env.GITHUB_TOKEN,
   }
 };
 

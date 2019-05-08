@@ -14,7 +14,7 @@ Currently supporting :
 - [X] Twitter : likes, tweets, retweets
 - [X] Youtube : likes, favorites, history (via manual import & parsing)
 - [X] Reddit : upvoted, saved
-- [ ] Github : stars
+- [X] Github : stars
 - [ ] Facebook : likes
 - [ ] Spotify : saved tracks & albums
 - [X] ~~Browser bookmarks (avaible for analysis via manual import)~~

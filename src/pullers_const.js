@@ -95,6 +95,21 @@ const REDDIT = {
   }
 };
 
+const GITHUB = {
+  NAME: 'github',
+  FILE: './db/github_db.json',
+  COLOR: chalk.bold.gray,
+  PATH: './src/pullers/github_pull.js',
+  AUTH: false,
+  STEPS: {
+    STARRED: 0,
+  },
+  DEFAULT_DB: {
+    starred: [],
+    last_pull: ''
+  }
+};
+
 module.exports = {
   MAX_CONCURENCY,
   PULLER_STATUS,
@@ -102,5 +117,6 @@ module.exports = {
   POCKET,
   TWITTER,
   YOUTUBE,
-  REDDIT
+  REDDIT,
+  GITHUB
 };
