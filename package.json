@@ -13,11 +13,12 @@
     "url": "https://github.com/austil/datapuller"
   },
   "dependencies": {
+    "@octokit/rest": "16.25.3",
     "chalk": "2.4.2",
     "cheerio": "1.0.0-rc.3",
     "google-auth-library": "1.6.1",
-    "googleapis": "28.1.0",
-    "lodash": "4.17.11",
+    "googleapis": "45.0.0",
+    "lodash": "4.17.15",
     "log-update": "2.3.0",
     "lowdb": "1.0.0",
     "node-getpocket": "1.0.0",
@@ -25,8 +26,7 @@
     "request-promise-native": "1.0.7",
     "simple-statistics": "6.1.1",
     "snoowrap": "1.15.2",
-    "twitter": "1.7.1",
-    "@octokit/rest": "16.25.3"
+    "twitter": "1.7.1"
   },
   "devDependencies": {
     "eslint": "4.19.1"

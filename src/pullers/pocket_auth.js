@@ -7,8 +7,8 @@ const auth = require('../auth_manager');
 // Api Token
 const getRequestToken = ({pocket, config}) => (new Promise((resolve, reject) => {
   pocket.getRequestToken(config, (err, resp, body) => {
-    if (err) { 
-      reject('Get request token failed ' + JSON.stringify(err)); 
+    if (err) {
+      reject('Get request token failed ' + err); 
     }
     else {
       const json = JSON.parse(body);
@@ -29,7 +29,7 @@ const authorizeApp = ({pocket, config, log}) => (new Promise((resolve) => {
 const getAccesstoken = ({pocket, config}) => (new Promise((resolve, reject) => {
   pocket.getAccessToken(config, (err, resp, body) => {
     if (err) {
-      reject('Get access token failed ' + JSON.stringify(err));
+      reject('Get access token failed ' + err);
     }
     else {
       const json = JSON.parse(body);

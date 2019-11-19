@@ -40,7 +40,7 @@ const conf = {
 };
 
 try {
-  const file_conf = require('../config.js');
+  const file_conf = require('../config.json');
   _.merge(conf, file_conf);
   conf.SOURCE = 'MIXED';
 } catch (error) {

@@ -1,5 +1,7 @@
 db/
 sample_request.sh
 config.js
+config.json
 node_modules
 drop_zone/*.html
+.vscode
