@@ -23,16 +23,21 @@ Currently supporting :
 ```bash
 # A specific puller (for setup or debug), e.g. twitter
 node src/pullers/twitter_pull.js
-# All puler at once
+# All puller at once
 npm run start
+
+# Stats
+node src/stats.js
+# Specific report
+node src/reports/twitter_report.js
+node src/reports/pocket_readnext.js
 ```
 
 ## Setup
 
 * Run `npm install`
 * Provide your API Credentials via env variables or a `./config.json` file (have a look at `./src/config_manager.js`)
-* Go through the auth procedure of every configured puller by launching them separatly
-* Run all puller with `npm run start`
+* Go through the auth procedure of every configured puller by launching them separatly (with something like `node ./src/pullers/pocket_pull.js`)
 
 ## More on this project
 
@@ -53,4 +58,4 @@ Website's export feature have shortcomings (late 2019) :
 - Github export does not include starred repos
 - Youtube export does not include any videos metadata like duration and category
 
-As for Facebook, Reddit and Twitter, they're doing a great job so my scripts are kind of irrelevant.
+As for Facebook, Reddit and Twitter, they're doing a great job so my scripts may be irrelevant.
