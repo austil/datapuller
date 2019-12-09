@@ -1,4 +1,5 @@
 db/
+exports/
 sample_request.sh
 config.js
 config.json
